@@ -30,15 +30,9 @@ type addedMsg struct {
 	err  error
 }
 
-// NewAdd returns the add-an-idea view over src. A non-empty blocked says why
-// the view cannot add anything (Physa doesn't know the person yet) and is
-// shown instead of the form.
-func NewAdd(src Source, profile colorprofile.Profile, blocked string) *Add {
+// NewAdd returns the add-an-idea view over src.
+func NewAdd(src Source, profile colorprofile.Profile) *Add {
 	m := &Add{src: src, profile: profile}
-	if blocked != "" {
-		m.note = m.dialog([]string{blocked})
-		return m
-	}
 	idea := ui.NewTextArea("idea", "The idea").
 		Placeholder("What you want to try, in a few plain words").
 		CharLimit(ideaLimit).
@@ -54,17 +48,11 @@ func NewAdd(src Source, profile colorprofile.Profile, blocked string) *Add {
 
 // NaturalSize is the size a layer should open at.
 func (m *Add) NaturalSize() (cols, rows int) {
-	if m.form != nil {
-		return m.form.NaturalSize()
-	}
-	return m.note.NaturalSize()
+	return m.form.NaturalSize()
 }
 
 func (m *Add) Init() tea.Cmd {
-	if m.form != nil {
-		return m.form.Init()
-	}
-	return m.note.Init()
+	return m.form.Init()
 }
 
 func (m *Add) Update(msg tea.Msg) (tea.Model, tea.Cmd) {

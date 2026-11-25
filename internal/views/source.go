@@ -25,13 +25,12 @@ type Source interface {
 	Add(ctx context.Context, text string) (client.IdeaOut, error)
 }
 
-// Engine is a Source over the machine's engine, for one repo and the
-// person the views act for. It dials on the first call, after the view has
+// Engine is a Source over the machine's engine, for one repo. The engine
+// names the person who adds an idea, as the CLI does. It dials on the first call, after the view has
 // painted, so starting the engine never delays the first frame.
 type Engine struct {
-	Dial   func(context.Context) (*client.Client, error)
-	Repo   string
-	Person string
+	Dial func(context.Context) (*client.Client, error)
+	Repo string
 
 	mu sync.Mutex
 	c  *client.Client
@@ -82,7 +81,7 @@ func (e *Engine) Pursuit(ctx context.Context, slug string) (client.PursuitOut, e
 
 func (e *Engine) Add(ctx context.Context, text string) (client.IdeaOut, error) {
 	var out client.IdeaOut
-	err := e.call(ctx, "idea.add", client.AddIn{Repo: e.Repo, Text: text, Person: e.Person}, &out)
+	err := e.call(ctx, "idea.add", client.AddIn{Repo: e.Repo, Text: text}, &out)
 	return out, err
 }
 

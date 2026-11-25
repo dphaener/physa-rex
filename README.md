@@ -7,7 +7,7 @@
 - **Ideas**: the repo's ideas, newest first. Type to filter, then press enter for an idea's page: who it belongs to, its pursuit's state, its appetite, its signal, its planned changes and what landed, what needs you, and the evidence behind it. Esc goes back.
 - **Add an idea**: one field. The idea belongs to you.
 
-Needs you and watching a live session come when Physa's engine runs them.
+Needs you and watching a live session come when Physa's engine runs them. An idea's page shows its strength once Physa works strength out; until then it shows the facts behind it.
 
 ## Install
 
@@ -20,7 +20,7 @@ physa-rex rex install
 
 `rex install` writes `physa.lua` beside Rex's `init.lua` and requires it from there once. Press `ctrl+a p` to enter Physa's key mode, then `i` for the ideas or `a` to add one. Both are also in Rex's command palette. Change the key in the settings block at the top of `physa.lua`; a reinstall keeps it.
 
-The views show the repo of the pane you open them from. They act as the person Physa already knows on this machine, from the setting the `physa` CLI keeps.
+The views show the repo of the pane you open them from. The engine names you when you add an idea, the same way the `physa` CLI does.
 
 ## How it works
 
@@ -28,12 +28,8 @@ The views call the engine's local API only through Physa's public `client` packa
 
 ## Developing
 
-Physa isn't public yet, so this module builds through a Go workspace beside a Physa checkout:
-
 ```sh
-git clone git@github.com:dphaener/physa.git ../physa
-go work init . ../physa
-go test ./...
+go vet ./... && go test ./...
 ```
 
 ## License

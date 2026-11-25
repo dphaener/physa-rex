@@ -62,13 +62,7 @@ func app(name string) error {
 	case "ideas":
 		model = views.NewIdeas(src, profile)
 	case "add":
-		person, perr := link.Person()
-		blocked := ""
-		if perr != nil {
-			blocked = perr.Error()
-		}
-		src.Person = person
-		model = views.NewAdd(src, profile, blocked)
+		model = views.NewAdd(src, profile)
 	}
 	_, err = tea.NewProgram(model).Run()
 	return err
@@ -79,7 +73,7 @@ func install(stdout io.Writer) error {
 	if err != nil {
 		return err
 	}
-	addCols, addRows := views.NewAdd(nil, colorprofile.TrueColor, "").NaturalSize()
+	addCols, addRows := views.NewAdd(nil, colorprofile.TrueColor).NaturalSize()
 	wrote, err := rexlua.Install(dir, rexlua.Sizes{IdeasCols: ideasCols, IdeasRows: ideasRows, AddCols: addCols, AddRows: addRows})
 	for _, p := range wrote {
 		fmt.Fprintln(stdout, "wrote", p)

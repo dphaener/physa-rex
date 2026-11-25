@@ -158,20 +158,13 @@ func TestPageNeverPursued(t *testing.T) {
 
 func TestAddSendsTheIdea(t *testing.T) {
 	f := &fake{}
-	m := NewAdd(f, colorprofile.TrueColor, "")
+	m := NewAdd(f, colorprofile.TrueColor)
 	drive(t, m, func() tea.Msg { return ui.FormSubmittedMsg{Values: ui.Values{"idea": "  Try a shorter signup  "}} })
 	if f.added != "Try a shorter signup" {
 		t.Fatalf("the engine got %q", f.added)
 	}
 	if got := plain(m.View()); !strings.Contains(got, "Added as try-it. It's yours.") {
 		t.Errorf("after adding:\n%s", got)
-	}
-}
-
-func TestAddBlockedWithoutAPerson(t *testing.T) {
-	m := NewAdd(&fake{}, colorprofile.TrueColor, "Physa doesn't know your name on this machine yet")
-	if got := plain(m.View()); !strings.Contains(got, "doesn't know your name") {
-		t.Errorf("a blocked add should say why:\n%s", got)
 	}
 }
 
