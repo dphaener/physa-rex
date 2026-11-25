@@ -18,6 +18,8 @@ go install github.com/dphaener/physa-rex/cmd/physa-rex@latest
 physa-rex rex install
 ```
 
+If your Go comes from mise, run `mise reshim` after the install, so Rex's login shell finds `physa-rex`.
+
 `rex install` writes `physa.lua` beside Rex's `init.lua` and requires it from there once. Press `ctrl+a p` to enter Physa's key mode, then `i` for the ideas or `a` to add one. Both are also in Rex's command palette. Change the key in the settings block at the top of `physa.lua`; a reinstall keeps it.
 
 The views show the repo of the pane you open them from. The engine names you when you add an idea, the same way the `physa` CLI does.
