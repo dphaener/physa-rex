@@ -81,6 +81,6 @@ func install(stdout io.Writer) error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprintln(stdout, "Physa's key mode is ctrl+a p, then i for the ideas or a to add one. Change the key in physa.lua's settings block.")
+	fmt.Fprintln(stdout, "Physa's key mode is ctrl+a y, then i for the ideas or a to add one. Change the key in physa.lua's settings block.")
 	return nil
 }

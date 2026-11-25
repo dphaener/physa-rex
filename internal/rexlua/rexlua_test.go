@@ -35,7 +35,7 @@ func TestInstallKeepsSettingsAndRequiresOnce(t *testing.T) {
 	}
 	path := filepath.Join(dir, "physa.lua")
 	b, _ := os.ReadFile(path)
-	edited := strings.Replace(string(b), `launch_key = "ctrl+a>p"`, `launch_key = "ctrl+a>y"`, 1)
+	edited := strings.Replace(string(b), `launch_key = "ctrl+a>y"`, `launch_key = "ctrl+a>z"`, 1)
 	if err := os.WriteFile(path, []byte(edited), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -48,7 +48,7 @@ func TestInstallKeepsSettingsAndRequiresOnce(t *testing.T) {
 		t.Errorf("a second install wrote %v; init.lua already requires physa", wrote)
 	}
 	b, _ = os.ReadFile(path)
-	if !strings.Contains(string(b), `launch_key = "ctrl+a>y"`) {
+	if !strings.Contains(string(b), `launch_key = "ctrl+a>z"`) {
 		t.Error("the person's settings were not kept")
 	}
 	init, _ := os.ReadFile(initLua)
