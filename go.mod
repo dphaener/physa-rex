@@ -6,7 +6,7 @@ require (
 	charm.land/bubbletea/v2 v2.1.3
 	charm.land/lipgloss/v2 v2.1.1
 	github.com/charmbracelet/colorprofile v0.4.3
-	github.com/dphaener/physa v0.0.0-20261125150114-1ee5812ad156
+	github.com/dphaener/physa v0.0.0-20261125150557-bf925250c039
 	github.com/dphaener/rexuikit v0.3.0
 )
 

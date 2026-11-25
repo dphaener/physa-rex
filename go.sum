@@ -30,8 +30,8 @@ github.com/clipperhouse/uax29/v2 v2.7.0 h1:+gs4oBZ2gPfVrKPthwbMzWZDaAFPGYK72F0NJ
 github.com/clipperhouse/uax29/v2 v2.7.0/go.mod h1:EFJ2TJMRUaplDxHKj1qAEhCtQPW2tJSwu5BF98AuoVM=
 github.com/coder/websocket v1.8.15 h1:6B2JPeOGlpff2Uz6vOEH1Vzpi0iUz20A+lPVhPHtNUA=
 github.com/coder/websocket v1.8.15/go.mod h1:NX3SzP+inril6yawo5CQXx8+fk145lPDC6pumgx0mVg=
-github.com/dphaener/physa v0.0.0-20261125150114-1ee5812ad156 h1:u6+jWKNbaP4R0ROEjyyQYSVUaVOFfIZ9xw8wmeTLzCA=
-github.com/dphaener/physa v0.0.0-20261125150114-1ee5812ad156/go.mod h1:KLYr9xdfb9ho65+sIOt2S/DrhfFwE8U9twbMNMKT8FY=
+github.com/dphaener/physa v0.0.0-20261125150557-bf925250c039 h1:GNTAfskHdqHzFu8jafgTZrc08Q4sBoWZpZIBJ7Y0ecg=
+github.com/dphaener/physa v0.0.0-20261125150557-bf925250c039/go.mod h1:KLYr9xdfb9ho65+sIOt2S/DrhfFwE8U9twbMNMKT8FY=
 github.com/dphaener/rexuikit v0.3.0 h1:SOfNKDJkR3k0C4YGfRM9XxtfGAUJxa9UtCzusT31fBg=
 github.com/dphaener/rexuikit v0.3.0/go.mod h1:9Jgayo2/qcmXhDyBbPp1KRgF1H+IQdiPgX36D/1lyUs=
 github.com/lucasb-eyer/go-colorful v1.4.1 h1:1EO+WB73+EH8EVbzlrG3KLAfEypQWVHIBqlTf+2hNss=
