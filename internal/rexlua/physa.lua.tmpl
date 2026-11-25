@@ -6,6 +6,8 @@ local settings = {
   launch_key = "ctrl+a>y",
   -- The physa-rex binary, when the login shell can't find it on PATH.
   bin = "",
+  -- The physa CLI the views start the engine with, when the login shell can't find it.
+  physa = "",
 }
 -- settings end
 
@@ -20,13 +22,20 @@ local FALLBACK_BOUNDS = { 0.2, 0.15, 0.6, 0.7 }
 
 -- command runs physa-rex with args: the binary settings.bin names, else the
 -- one the login shell of the layer's host finds, since the Rex server's PATH
--- can lack the person's.
+-- can lack the person's. settings.physa reaches the views as PHYSA_BIN.
 local LOGIN_SHELL = [[exec "${SHELL:-/bin/sh}" -lc 'exec "$0" "$@"' "$@"]]
 local function command(...)
+  local cmd
   if type(settings.bin) == "string" and settings.bin ~= "" then
-    return { settings.bin, ... }
+    cmd = { settings.bin, ... }
+  else
+    cmd = { "/bin/sh", "-c", LOGIN_SHELL, "sh", "physa-rex", ... }
   end
-  return { "/bin/sh", "-c", LOGIN_SHELL, "sh", "physa-rex", ... }
+  if type(settings.physa) == "string" and settings.physa ~= "" then
+    table.insert(cmd, 1, "PHYSA_BIN=" .. settings.physa)
+    table.insert(cmd, 1, "/usr/bin/env")
+  end
+  return cmd
 end
 
 -- cwd is the working directory of the block's foreground program, else of

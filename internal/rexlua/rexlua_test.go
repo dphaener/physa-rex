@@ -30,7 +30,7 @@ func TestInstallKeepsSettingsAndRequiresOnce(t *testing.T) {
 	if err := os.WriteFile(initLua, []byte(`require("other")`), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := Install(dir, sizes); err != nil {
+	if _, err := Install(dir, sizes, Bins{}); err != nil {
 		t.Fatal(err)
 	}
 	path := filepath.Join(dir, "physa.lua")
@@ -40,7 +40,7 @@ func TestInstallKeepsSettingsAndRequiresOnce(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	wrote, err := Install(dir, sizes)
+	wrote, err := Install(dir, sizes, Bins{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -57,5 +57,49 @@ func TestInstallKeepsSettingsAndRequiresOnce(t *testing.T) {
 	}
 	if !strings.HasPrefix(string(init), "require(\"other\")\n") {
 		t.Errorf("init.lua's own lines changed:\n%s", init)
+	}
+}
+
+func TestInstallFillsOnlyEmptyBins(t *testing.T) {
+	dir := t.TempDir()
+	if _, err := Install(dir, sizes, Bins{Rex: "/opt/go/bin/physa-rex", Physa: `/Users/a "b"/bin/physa`}); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(dir, "physa.lua")
+	b, _ := os.ReadFile(path)
+	for _, want := range []string{`bin = "/opt/go/bin/physa-rex",`, `physa = "/Users/a \"b\"/bin/physa",`} {
+		if !strings.Contains(string(b), want) {
+			t.Errorf("physa.lua lacks %s:\n%s", want, b)
+		}
+	}
+	if _, err := Install(dir, sizes, Bins{Rex: "/elsewhere/physa-rex"}); err != nil {
+		t.Fatal(err)
+	}
+	b, _ = os.ReadFile(path)
+	if !strings.Contains(string(b), `bin = "/opt/go/bin/physa-rex",`) {
+		t.Errorf("a set bin was overwritten:\n%s", b)
+	}
+}
+
+func TestInstallAddsPhysaToAnOlderSettingsBlock(t *testing.T) {
+	dir := t.TempDir()
+	old := "-- settings begin\nlocal settings = {\n  launch_key = \"ctrl+a>p\",\n  bin = \"\",\n}\n-- settings end\n"
+	if err := os.WriteFile(filepath.Join(dir, "physa.lua"), []byte(old), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Install(dir, sizes, Bins{Physa: "/u/bin/physa"}); err != nil {
+		t.Fatal(err)
+	}
+	b, _ := os.ReadFile(filepath.Join(dir, "physa.lua"))
+	for _, want := range []string{`launch_key = "ctrl+a>p",`, `bin = "",`, "  physa = \"/u/bin/physa\",\n}\n-- settings end"} {
+		if !strings.Contains(string(b), want) {
+			t.Errorf("physa.lua lacks %q:\n%s", want, b)
+		}
+	}
+}
+
+func TestLuaStringRefusesWhatItCannotHold(t *testing.T) {
+	if _, err := luaString("/tmp/caf\u00e9/physa"); err == nil {
+		t.Error("a non-ASCII path was quoted; it should be refused")
 	}
 }
