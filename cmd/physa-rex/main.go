@@ -2,9 +2,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/colorprofile"
@@ -74,13 +79,69 @@ func install(stdout io.Writer) error {
 		return err
 	}
 	addCols, addRows := views.NewAdd(nil, colorprofile.TrueColor).NaturalSize()
-	wrote, err := rexlua.Install(dir, rexlua.Sizes{IdeasCols: ideasCols, IdeasRows: ideasRows, AddCols: addCols, AddRows: addRows})
+	bins, notes := loginBins()
+	wrote, err := rexlua.Install(dir, rexlua.Sizes{IdeasCols: ideasCols, IdeasRows: ideasRows, AddCols: addCols, AddRows: addRows}, bins)
 	for _, p := range wrote {
 		fmt.Fprintln(stdout, "wrote", p)
 	}
 	if err != nil {
 		return err
 	}
+	for _, n := range notes {
+		fmt.Fprintln(stdout, n)
+	}
 	fmt.Fprintln(stdout, "Physa's key mode is ctrl+a y, then i for the ideas or a to add one. Change the key in physa.lua's settings block.")
 	return nil
+}
+
+// loginBins finds what a Rex layer can't: Rex starts the views through a
+// login shell, which reads the login profile but not an interactive shell's
+// configuration, where tools such as mise often add to PATH. For physa-rex
+// and physa that such a shell can't find, it returns the absolute paths
+// found now, with a note for each.
+func loginBins() (rexlua.Bins, []string) {
+	var bins rexlua.Bins
+	var notes []string
+	if !loginFinds("physa-rex") {
+		exe, err := os.Executable()
+		if err == nil {
+			exe, err = filepath.EvalSymlinks(exe)
+		}
+		switch {
+		case err != nil:
+			notes = append(notes, "A login shell can't find physa-rex. Set bin in physa.lua's settings to its path.")
+		case strings.Contains(exe, "go-build"):
+			notes = append(notes, "A login shell can't find physa-rex, and this one is a go run build. Install it, then run physa-rex rex install again.")
+		default:
+			bins.Rex = exe
+			notes = append(notes, "A login shell can't find physa-rex, so physa.lua runs "+exe+".")
+		}
+	}
+	if !loginFinds("physa") {
+		if p, err := exec.LookPath("physa"); err == nil {
+			if abs, err := filepath.Abs(p); err == nil {
+				bins.Physa = abs
+				notes = append(notes, "A login shell can't find physa, so the views start the engine with "+abs+".")
+			}
+		} else {
+			notes = append(notes, "physa isn't on PATH. Install Physa's CLI, then run physa-rex rex install again.")
+		}
+	}
+	return bins, notes
+}
+
+// loginFinds reports whether a login shell, started the way Rex starts a
+// layer, finds name on its PATH. It starts from a bare environment, so the
+// PATH of the shell running the install doesn't leak in.
+func loginFinds(name string) bool {
+	shell := os.Getenv("SHELL")
+	if shell == "" {
+		shell = "/bin/sh"
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, shell, "-lc", `command -v "$0" >/dev/null 2>&1`, name)
+	cmd.Env = []string{"HOME=" + os.Getenv("HOME"), "USER=" + os.Getenv("USER"), "LOGNAME=" + os.Getenv("LOGNAME"),
+		"SHELL=" + shell, "PATH=/usr/bin:/bin:/usr/sbin:/sbin"}
+	return cmd.Run() == nil
 }

@@ -18,7 +18,7 @@ go install github.com/dphaener/physa-rex/cmd/physa-rex@latest
 physa-rex rex install
 ```
 
-If your Go comes from mise, run `mise reshim` after the install, so Rex's login shell finds `physa-rex`.
+Rex starts the views through a login shell, which doesn't read an interactive shell's setup such as `.zshrc`, where mise and similar tools often add to PATH. `rex install` checks what a login shell finds, and when it can't find `physa-rex` or `physa`, it writes their absolute paths into `physa.lua`'s settings and says so. After moving either binary, run `rex install` again, or edit `bin` and `physa` in the settings block.
 
 `rex install` writes `physa.lua` beside Rex's `init.lua` and requires it from there once. Press `ctrl+a y` to enter Physa's key mode, then `i` for the ideas or `a` to add one. Both are also in Rex's command palette. Change the key in the settings block at the top of `physa.lua`; a reinstall keeps it.
 

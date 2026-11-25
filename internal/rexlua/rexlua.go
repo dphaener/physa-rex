@@ -59,10 +59,18 @@ func ConfigDir() (string, error) {
 	return filepath.Join(d, "rex"), nil
 }
 
+// Bins are absolute paths for physa.lua's settings: Rex for bin, physa-rex
+// itself, and Physa for physa, the CLI that starts the engine. An empty one
+// leaves its setting alone.
+type Bins struct {
+	Rex, Physa string
+}
+
 // Install writes physa.lua into dir, keeping the settings block of the one
 // already there, and adds the require line to init.lua when it is missing.
-// It returns the paths it wrote.
-func Install(dir string, s Sizes) ([]string, error) {
+// A path in bins fills its setting only while the setting is empty, so a
+// person's own value is kept. It returns the paths it wrote.
+func Install(dir string, s Sizes, bins Bins) ([]string, error) {
 	lua, err := Render(s)
 	if err != nil {
 		return nil, err
@@ -79,6 +87,11 @@ func Install(dir string, s Sizes) ([]string, error) {
 		}
 	case !errors.Is(err, fs.ErrNotExist):
 		return nil, err
+	}
+	for _, f := range []struct{ name, value string }{{"bin", bins.Rex}, {"physa", bins.Physa}} {
+		if lua, err = fill(lua, f.name, f.value); err != nil {
+			return nil, err
+		}
 	}
 	if err := os.WriteFile(path, []byte(lua), 0o644); err != nil {
 		return nil, err
@@ -101,6 +114,53 @@ func Install(dir string, s Sizes) ([]string, error) {
 		return wrote, fmt.Errorf("add the require to %s: %w", initPath, err)
 	}
 	return append(wrote, initPath), nil
+}
+
+// fill sets the setting name to value in lua's settings block when it is
+// empty, and adds it when an older block lacks it. An empty value changes
+// nothing.
+func fill(lua, name, value string) (string, error) {
+	if value == "" {
+		return lua, nil
+	}
+	quoted, err := luaString(value)
+	if err != nil {
+		return "", fmt.Errorf("%s: %w", name, err)
+	}
+	block := settingsBlock.FindString(lua)
+	if block == "" {
+		return lua, nil
+	}
+	line := regexp.MustCompile(`(?m)^(\s*)` + name + `\s*=\s*(.*?),?\s*$`)
+	var out string
+	if m := line.FindStringSubmatch(block); m != nil {
+		if strings.TrimSpace(m[2]) != `""` {
+			return lua, nil
+		}
+		out = line.ReplaceAllLiteralString(block, m[1]+name+" = "+quoted+",")
+	} else {
+		end := strings.LastIndex(block, "}")
+		out = block[:end] + "  " + name + " = " + quoted + ",\n" + block[end:]
+	}
+	return strings.Replace(lua, block, out, 1), nil
+}
+
+// luaString quotes s as a Lua string literal. Only printable ASCII is
+// written, so the quoting holds in every Lua version.
+func luaString(s string) (string, error) {
+	var b strings.Builder
+	b.WriteByte('"')
+	for _, r := range s {
+		if r < 0x20 || r > 0x7e {
+			return "", fmt.Errorf("%q has a character physa.lua can't hold; set it by hand", s)
+		}
+		if r == '"' || r == '\\' {
+			b.WriteByte('\\')
+		}
+		b.WriteRune(r)
+	}
+	b.WriteByte('"')
+	return b.String(), nil
 }
 
 var requireRe = regexp.MustCompile(`(?m)^\s*require\s*\(?\s*["']physa["']`)

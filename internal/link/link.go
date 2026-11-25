@@ -18,9 +18,21 @@ import (
 // answer before it returns.
 const startTimeout = 15 * time.Second
 
+// PhysaEnv names the physa CLI to start the engine with, for a layer whose
+// PATH can't find it. physa.lua sets it from its physa setting.
+const PhysaEnv = "PHYSA_BIN"
+
 // ErrNoPhysa is returned when no engine answers and the physa CLI is not on
 // PATH to start one.
-var ErrNoPhysa = errors.New("Physa's engine isn't running, and the physa command isn't on PATH to start it")
+var ErrNoPhysa = errors.New("Physa's engine isn't running, and the physa command isn't on PATH to start it.")
+
+// physaBin is the physa CLI: PhysaEnv when it is set, else physa on PATH.
+func physaBin() (string, error) {
+	if p := os.Getenv(PhysaEnv); p != "" {
+		return p, nil
+	}
+	return exec.LookPath("physa")
+}
 
 // Connect returns a client connected to the engine. When none answers it
 // runs `physa engine start` once and tries again.
@@ -32,7 +44,7 @@ func Connect(ctx context.Context) (*client.Client, error) {
 	if c, err := client.Dial(ctx, socket); err == nil {
 		return c, nil
 	}
-	bin, err := exec.LookPath("physa")
+	bin, err := physaBin()
 	if err != nil {
 		return nil, ErrNoPhysa
 	}
