@@ -103,3 +103,25 @@ func TestLuaStringRefusesWhatItCannotHold(t *testing.T) {
 		t.Error("a non-ASCII path was quoted; it should be refused")
 	}
 }
+
+func TestConfigDirIsWhereRexLooks(t *testing.T) {
+	home := func() (string, error) { return "/Users/d", nil }
+	appData := func() (string, error) { return "/Users/d/Library/Application Support", nil }
+	env := func(m map[string]string) func(string) string { return func(k string) string { return m[k] } }
+	for _, c := range []struct {
+		goos string
+		env  map[string]string
+		want string
+	}{
+		{"darwin", nil, "/Users/d/.config/rex"},
+		{"linux", nil, "/Users/d/.config/rex"},
+		{"darwin", map[string]string{"XDG_CONFIG_HOME": "/x"}, "/x/rex"},
+		{"darwin", map[string]string{"REX_CONFIG": "/r/init.lua", "XDG_CONFIG_HOME": "/x"}, "/r"},
+		{"windows", nil, "/Users/d/Library/Application Support/rex"},
+	} {
+		got, err := configDir(c.goos, env(c.env), home, appData)
+		if err != nil || got != c.want {
+			t.Errorf("configDir(%s, %v) = %q, %v; want %q", c.goos, c.env, got, err, c.want)
+		}
+	}
+}

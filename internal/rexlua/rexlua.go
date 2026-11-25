@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"text/template"
 
@@ -46,17 +47,33 @@ func Render(s Sizes) (string, error) {
 	return b.String(), err
 }
 
-// ConfigDir is the directory holding Rex's init.lua: the directory of
-// REX_CONFIG when it is set, else rex under the user's config directory.
+// ConfigDir is the directory holding Rex's init.lua, where Rex looks for it:
+// the directory of REX_CONFIG when it is set, else rex under XDG_CONFIG_HOME,
+// else ~/.config/rex on macOS and Linux and rex under %AppData% on Windows.
+// Go's os.UserConfigDir differs on macOS, so it is used only on Windows.
 func ConfigDir() (string, error) {
-	if c := os.Getenv("REX_CONFIG"); c != "" {
+	return configDir(runtime.GOOS, os.Getenv, os.UserHomeDir, os.UserConfigDir)
+}
+
+func configDir(goos string, getenv func(string) string, home, appData func() (string, error)) (string, error) {
+	if c := getenv("REX_CONFIG"); c != "" {
 		return filepath.Dir(c), nil
 	}
-	d, err := os.UserConfigDir()
+	if x := getenv("XDG_CONFIG_HOME"); x != "" {
+		return filepath.Join(x, "rex"), nil
+	}
+	if goos == "windows" {
+		d, err := appData()
+		if err != nil {
+			return "", err
+		}
+		return filepath.Join(d, "rex"), nil
+	}
+	h, err := home()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(d, "rex"), nil
+	return filepath.Join(h, ".config", "rex"), nil
 }
 
 // Bins are absolute paths for physa.lua's settings: Rex for bin, physa-rex

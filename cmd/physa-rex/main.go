@@ -90,6 +90,7 @@ func install(stdout io.Writer) error {
 	for _, n := range notes {
 		fmt.Fprintln(stdout, n)
 	}
+	fmt.Fprintln(stdout, "Run rex config reload to load it.")
 	fmt.Fprintln(stdout, "Physa's key mode is ctrl+a y, then i for the ideas or a to add one. Change the key in physa.lua's settings block.")
 	return nil
 }
