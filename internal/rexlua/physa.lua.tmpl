@@ -1,0 +1,128 @@
+-- Written by physa-rex rex install.
+-- Edit the settings block; a reinstall keeps it. Everything else is rewritten.
+-- settings begin
+local settings = {
+  -- The key that enters Physa's key mode; then i opens the ideas and a adds one.
+  launch_key = "ctrl+a>y",
+  -- The physa-rex binary, when the login shell can't find it on PATH.
+  bin = "",
+}
+-- settings end
+
+local TERM = "com.superlogical.terminal"
+local MODE = "physa"
+
+-- Layer chrome, from rexuikit's surface package (docs/rex-behaviors.md there).
+local FRAME_PX_COLS, FRAME_PX_ROWS = {{.FramePxCols}}, {{.FramePxRows}}
+local BORDER_PX_COLS, BORDER_PX_ROWS = {{.BorderPxCols}}, {{.BorderPxRows}}
+local MARGIN_PX_COLS, MARGIN_PX_ROWS = {{.MarginPxCols}}, {{.MarginPxRows}}
+local FALLBACK_BOUNDS = { 0.2, 0.15, 0.6, 0.7 }
+
+-- command runs physa-rex with args: the binary settings.bin names, else the
+-- one the login shell of the layer's host finds, since the Rex server's PATH
+-- can lack the person's.
+local LOGIN_SHELL = [[exec "${SHELL:-/bin/sh}" -lc 'exec "$0" "$@"' "$@"]]
+local function command(...)
+  if type(settings.bin) == "string" and settings.bin ~= "" then
+    return { settings.bin, ... }
+  end
+  return { "/bin/sh", "-c", LOGIN_SHELL, "sh", "physa-rex", ... }
+end
+
+-- cwd is the working directory of the block's foreground program, else of
+-- its shell: the repo the views show.
+local function cwd(block_id)
+  if block_id == nil then return nil end
+  local ok, p = pcall(rex.block.call, TERM, "process", { block_id = block_id })
+  if not ok or p == nil then return nil end
+  return (p.foreground and p.foreground.cwd) or (p.child and p.child.cwd)
+end
+
+local function find_rect(node, id)
+  if node == nil then return nil end
+  if node.block_id == id then return node.rect end
+  if node.split ~= nil then
+    return find_rect(node.split.before, id) or find_rect(node.split.after, id)
+  end
+  return nil
+end
+
+-- place finds the window holding block_id and the bounds, in window
+-- fractions, of a centred layer whose usable size is at least cols x rows.
+local function place(block_id, cols, rows)
+  local ok, view = pcall(rex.session.view, {})
+  if not ok or type(view) ~= "table" or block_id == nil then return nil, FALLBACK_BOUNDS end
+  for _, w in ipairs(view.windows or {}) do
+    for _, l in ipairs(w.layers or {}) do
+      local rect = find_rect(l.layout, block_id)
+      if rect ~= nil then
+        local sok, sz = pcall(rex.block.call, TERM, "size", { block_id = block_id })
+        if l.kind ~= "tiled" or not sok or type(sz) ~= "table" or (sz.cell_width_px or 0) <= 0
+          or (sz.cell_height_px or 0) <= 0 or (rect[3] or 0) <= 0 or (rect[4] or 0) <= 0 then
+          return w.window_id, FALLBACK_BOUNDS
+        end
+        local win_cols = math.floor(sz.columns / rect[3] + 0.5)
+        local win_rows = math.floor(sz.rows / rect[4] + 0.5)
+        local function fit(win, frame, cell, border, margin, want)
+          local px = win * cell + frame
+          local span = math.min(1, (want * cell + border + margin) / px)
+          local function edge(v) return math.floor(v + 0.5) end
+          while true do
+            local pos = math.max(0, (1 - span) / 2)
+            local got = math.floor((edge(px * (pos + span)) - edge(px * pos) - border - margin) / cell)
+            if got >= want or span >= 1 then return pos, span end
+            span = math.min(1, span + 1 / px)
+          end
+        end
+        local x, bw = fit(win_cols, FRAME_PX_COLS, sz.cell_width_px, BORDER_PX_COLS, MARGIN_PX_COLS, cols)
+        local y, bh = fit(win_rows, FRAME_PX_ROWS, sz.cell_height_px, BORDER_PX_ROWS, MARGIN_PX_ROWS, rows)
+        return w.window_id, { x, y, bw, bh }
+      end
+    end
+  end
+  return nil, FALLBACK_BOUNDS
+end
+
+local function open(ctx, label, cols, rows, ...)
+  local window_id, bounds = place(ctx.block_id, cols, rows)
+  local res, err = rex.session.new_layer{
+    window_id = window_id,
+    bounds = bounds,
+    layout = rex.layout.block{
+      flavor = TERM .. ".shell",
+      label = label,
+      options = { command = command(...), cwd = cwd(ctx.block_id) },
+    },
+    focus = true,
+  }
+  if err ~= nil then error(err, 0) end
+  return res
+end
+
+rex.action{
+  name = "physa_ideas",
+  title = "Ideas",
+  description = "The repo's ideas, and each idea's page with its pursuit",
+  category = "physa",
+  keywords = "physa ideas pursuit",
+  run = function(ctx) return open(ctx, "Ideas", {{.IdeasCols}}, {{.IdeasRows}}, "app", "ideas") end,
+}
+
+rex.action{
+  name = "physa_add_idea",
+  title = "Add an idea",
+  description = "Add an idea to the repo; it belongs to you",
+  category = "physa",
+  keywords = "physa add idea",
+  run = function(ctx) return open(ctx, "Add an idea", {{.AddCols}}, {{.AddRows}}, "app", "add") end,
+}
+
+rex.mode(MODE, { exclusive = true })
+rex.bind(MODE .. "/escape", "client.mode.exit")
+rex.bind(MODE .. "/i", "physa_ideas")
+rex.bind(MODE .. "/a", "physa_add_idea")
+if type(settings.launch_key) == "string" and settings.launch_key ~= "" then
+  rex.bind((settings.launch_key:gsub("%s+", ">")), "client.mode.enter", { name = MODE, once = true })
+end
+
+return settings
